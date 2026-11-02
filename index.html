@@ -7,12 +7,12 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body {
-      margin: 0; font-family: Arial, sans-serif;
+      margin: 0; padding: 24px 0; font-family: Arial, sans-serif;
       background: #101827; color: white;
       min-height: 100vh; display: grid; place-items: center;
     }
     .panel {
-      width: min(420px, 88%); padding: 28px;
+      width: min(520px, 88%); padding: 28px;
       background: #1d293b; border-radius: 16px;
     }
     h1 { color: #56d6b0; }
@@ -27,9 +27,16 @@
       background: #16a985; color: white;
       border: 0; cursor: pointer; font-weight: bold;
     }
+    button:disabled { opacity: .6; cursor: wait; }
     .secondary { background: #35445b; }
-    #message { line-height: 1.8; color: #ffd479; }
-    #dashboard { display: none; }
+    .company-button { text-align: right; background: #35445b; }
+    .section {
+      margin-top: 20px; padding-top: 14px;
+      border-top: 1px solid #526078;
+    }
+    #message { line-height: 1.8; color: #ffd479; overflow-wrap: anywhere; }
+    #dashboard, #leadSection { display: none; }
+    .hint { color: #b9c6d8; font-size: 14px; line-height: 1.7; }
   </style>
 </head>
 <body>
@@ -39,8 +46,8 @@
 
     <section id="auth">
       <h3>تسجيل الدخول أو إنشاء حساب</h3>
-      <input id="email" type="email" placeholder="البريد الإلكتروني">
-      <input id="password" type="password" placeholder="كلمة المرور">
+      <input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="email">
+      <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
       <button onclick="signUp()">إنشاء حساب</button>
       <button class="secondary" onclick="signIn()">تسجيل الدخول</button>
     </section>
@@ -48,55 +55,70 @@
     <section id="dashboard">
       <h3>لوحة التحكم</h3>
       <p id="welcome"></p>
-      <input id="companyName" placeholder="اسم الشركة">
-      <input id="industry" placeholder="مجال الشركة">
-      <button onclick="createCompany()">إنشاء الشركة</button>
-      <div id="companies"></div>
+
+      <div class="section">
+        <h3>إنشاء شركة</h3>
+        <input id="companyName" placeholder="اسم الشركة">
+        <input id="industry" placeholder="مجال الشركة">
+        <button onclick="createCompany()">إنشاء الشركة</button>
+      </div>
+
+      <div id="companies" class="section"></div>
+
+      <section id="leadSection" class="section">
+        <h3>إضافة عميل جديد</h3>
+        <p id="selectedCompany" class="hint"></p>
+        <input id="leadName" placeholder="اسم العميل *">
+        <input id="leadPhone" type="tel" placeholder="رقم الهاتف *">
+        <input id="leadEmail" type="email" placeholder="البريد الإلكتروني (اختياري)">
+        <input id="leadSource" placeholder="مصدر العميل (مثال: Facebook)">
+        <input id="leadNotes" placeholder="ملاحظات">
+        <button id="saveLeadButton" onclick="createLead()">حفظ العميل</button>
+        <p class="hint">سيتم إرسال العميل إلى سير العمل الحالي في n8n وربطه بالشركة المختارة.</p>
+      </section>
+
       <button class="secondary" onclick="signOut()">تسجيل الخروج</button>
     </section>
 
-    <p id="message"></p>
+    <p id="message" role="status" aria-live="polite"></p>
   </main>
 
 <script>
 const SUPABASE_URL = "https://pyliahdufrfxfuysojsp.supabase.co";
-  const SUPABASE_KEY = "sb_publishable_UtyXJM2eeBq7VXGo9ssorg_QC9bTb8q";
+const SUPABASE_KEY = "sb_publishable_UtyXJM2eeBq7VXGo9ssorg_QC9bTb8q";
+const N8N_WEBHOOK_URL = "https://asemhosam.app.n8n.cloud/webhook/sgos-new-lead";
 
-const db = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_KEY
-);
-
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const msg = document.getElementById("message");
+let selectedCompanyId = null;
 
 async function signUp() {
   msg.textContent = "جاري إنشاء الحساب...";
   const { data, error } = await db.auth.signUp({
-    email: document.getElementById("email").value,
+    email: document.getElementById("email").value.trim(),
     password: document.getElementById("password").value
   });
   if (error) return msg.textContent = error.message;
   msg.textContent = data.session
     ? "تم إنشاء الحساب"
     : "تم إنشاء الحساب. راجع بريدك الإلكتروني لتأكيده ثم سجّل الدخول.";
-  if (data.session) showDashboard(data.session.user);
+  if (data.session) await showDashboard(data.session.user);
 }
 
 async function signIn() {
   msg.textContent = "جاري تسجيل الدخول...";
   const { data, error } = await db.auth.signInWithPassword({
-    email: document.getElementById("email").value,
+    email: document.getElementById("email").value.trim(),
     password: document.getElementById("password").value
   });
   if (error) return msg.textContent = error.message;
-  showDashboard(data.user);
+  await showDashboard(data.user);
 }
 
 async function showDashboard(user) {
   document.getElementById("auth").style.display = "none";
   document.getElementById("dashboard").style.display = "block";
-  document.getElementById("welcome").textContent =
-    "مرحبًا، " + user.email;
+  document.getElementById("welcome").textContent = "مرحبًا، " + user.email;
   await loadCompanies();
 }
 
@@ -112,30 +134,119 @@ async function createCompany() {
   });
 
   if (error) return msg.textContent = error.message;
-
+  document.getElementById("companyName").value = "";
+  document.getElementById("industry").value = "";
   msg.textContent = "تم إنشاء الشركة بنجاح";
   await loadCompanies();
 }
 
 async function loadCompanies() {
-  const { data, error } = await db
-    .from("companies")
-    .select("id,name");
+  const container = document.getElementById("companies");
+  const { data, error } = await db.from("companies").select("id,name");
 
-  if (error) return msg.textContent = error.message;
+  if (error) {
+    msg.textContent = error.message;
+    return;
+  }
 
-  document.getElementById("companies").innerHTML =
-    "<h3>شركاتك</h3>" +
-    (data.length
-      ? data.map(c => "<p>" + escapeHTML(c.name) + "</p>").join("")
-      : "<p>لم يتم إنشاء شركة بعد</p>");
+  container.replaceChildren();
+  const heading = document.createElement("h3");
+  heading.textContent = "شركاتك";
+  container.appendChild(heading);
+
+  if (!data || data.length === 0) {
+    const empty = document.createElement("p");
+    empty.textContent = "لم يتم إنشاء شركة بعد";
+    container.appendChild(empty);
+    document.getElementById("leadSection").style.display = "none";
+    return;
+  }
+
+  data.forEach(company => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "company-button";
+    button.textContent = "إدارة العملاء — " + company.name;
+    button.addEventListener("click", () => selectCompany(company.id, company.name));
+    container.appendChild(button);
+  });
 }
 
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, c => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;",
-    '"': "&quot;", "'": "&#39;"
-  })[c]);
+function selectCompany(companyId, companyName) {
+  selectedCompanyId = companyId;
+  document.getElementById("selectedCompany").textContent =
+    "الشركة المختارة: " + companyName;
+  document.getElementById("leadSection").style.display = "block";
+  msg.textContent = "تقدر دلوقتي تضيف عميل للشركة المختارة.";
+}
+
+async function createLead() {
+  if (!selectedCompanyId) {
+    msg.textContent = "اختار الشركة أولًا";
+    return;
+  }
+
+  const name = document.getElementById("leadName").value.trim();
+  const phone = document.getElementById("leadPhone").value.trim();
+  const email = document.getElementById("leadEmail").value.trim();
+  const source = document.getElementById("leadSource").value.trim();
+  const notes = document.getElementById("leadNotes").value.trim();
+
+  if (!name || !phone) {
+    msg.textContent = "اكتب اسم العميل ورقم الهاتف";
+    return;
+  }
+
+  const { data: sessionData, error: sessionError } = await db.auth.getSession();
+  if (sessionError || !sessionData.session) {
+    msg.textContent = "انتهت جلسة الدخول. سجّل الدخول مرة أخرى.";
+    return;
+  }
+
+  const saveButton = document.getElementById("saveLeadButton");
+  saveButton.disabled = true;
+  msg.textContent = "جاري إرسال بيانات العميل وحفظها...";
+
+  try {
+    const response = await fetch(N8N_WEBHOOK_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + sessionData.session.access_token
+      },
+      body: JSON.stringify({
+        company_id: selectedCompanyId,
+        name,
+        phone,
+        email,
+        source: source || "Website",
+        notes
+      })
+    });
+
+    let result = {};
+    try {
+      result = await response.json();
+    } catch (_) {
+      result = {};
+    }
+
+    if (!response.ok || result.success === false) {
+      const details = result.message || result.error || ("HTTP " + response.status);
+      throw new Error(details);
+    }
+
+    document.getElementById("leadName").value = "";
+    document.getElementById("leadPhone").value = "";
+    document.getElementById("leadEmail").value = "";
+    document.getElementById("leadSource").value = "";
+    document.getElementById("leadNotes").value = "";
+    msg.textContent = "تم إرسال العميل بنجاح إلى n8n وحفظه في قاعدة البيانات.";
+  } catch (error) {
+    msg.textContent = "تعذر حفظ العميل: " + (error.message || "خطأ في الاتصال");
+  } finally {
+    saveButton.disabled = false;
+  }
 }
 
 async function signOut() {
@@ -145,9 +256,8 @@ async function signOut() {
 
 (async () => {
   const { data } = await db.auth.getSession();
-  if (data.session) showDashboard(data.session.user);
+  if (data.session) await showDashboard(data.session.user);
 })();
 </script>
 </body>
 </html>
-
