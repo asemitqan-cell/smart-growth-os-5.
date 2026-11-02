@@ -1,263 +1,91 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Growth OS</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <style>
-    body {
-      margin: 0; padding: 24px 0; font-family: Arial, sans-serif;
-      background: #101827; color: white;
-      min-height: 100vh; display: grid; place-items: center;
-    }
-    .panel {
-      width: min(520px, 88%); padding: 28px;
-      background: #1d293b; border-radius: 16px;
-    }
-    h1 { color: #56d6b0; }
-    input, button {
-      width: 100%; box-sizing: border-box;
-      padding: 13px; margin: 8px 0;
-      border-radius: 8px; border: 1px solid #526078;
-      font-size: 16px;
-    }
-    input { background: #101827; color: white; }
-    button {
-      background: #16a985; color: white;
-      border: 0; cursor: pointer; font-weight: bold;
-    }
-    button:disabled { opacity: .6; cursor: wait; }
-    .secondary { background: #35445b; }
-    .company-button { text-align: right; background: #35445b; }
-    .section {
-      margin-top: 20px; padding-top: 14px;
-      border-top: 1px solid #526078;
-    }
-    #message { line-height: 1.8; color: #ffd479; overflow-wrap: anywhere; }
-    #dashboard, #leadSection { display: none; }
-    .hint { color: #b9c6d8; font-size: 14px; line-height: 1.7; }
-  </style>
-</head>
-<body>
-  <main class="panel">
-    <h1>Smart Growth OS</h1>
-    <p>منظومة إدارة التسويق والمبيعات الذكية</p>
-
-    <section id="auth">
-      <h3>تسجيل الدخول أو إنشاء حساب</h3>
-      <input id="email" type="email" placeholder="البريد الإلكتروني" autocomplete="email">
-      <input id="password" type="password" placeholder="كلمة المرور" autocomplete="current-password">
-      <button onclick="signUp()">إنشاء حساب</button>
-      <button class="secondary" onclick="signIn()">تسجيل الدخول</button>
-    </section>
-
-    <section id="dashboard">
-      <h3>لوحة التحكم</h3>
-      <p id="welcome"></p>
-
-      <div class="section">
-        <h3>إنشاء شركة</h3>
-        <input id="companyName" placeholder="اسم الشركة">
-        <input id="industry" placeholder="مجال الشركة">
-        <button onclick="createCompany()">إنشاء الشركة</button>
-      </div>
-
-      <div id="companies" class="section"></div>
-
-      <section id="leadSection" class="section">
-        <h3>إضافة عميل جديد</h3>
-        <p id="selectedCompany" class="hint"></p>
-        <input id="leadName" placeholder="اسم العميل *">
-        <input id="leadPhone" type="tel" placeholder="رقم الهاتف *">
-        <input id="leadEmail" type="email" placeholder="البريد الإلكتروني (اختياري)">
-        <input id="leadSource" placeholder="مصدر العميل (مثال: Facebook)">
-        <input id="leadNotes" placeholder="ملاحظات">
-        <button id="saveLeadButton" onclick="createLead()">حفظ العميل</button>
-        <p class="hint">سيتم إرسال العميل إلى سير العمل الحالي في n8n وربطه بالشركة المختارة.</p>
-      </section>
-
-      <button class="secondary" onclick="signOut()">تسجيل الخروج</button>
-    </section>
-
-    <p id="message" role="status" aria-live="polite"></p>
-  </main>
-
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Smart Growth OS | إدارة الشركة</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0b1220;--panel:#151f31;--panel2:#1c2940;--line:#2b3a53;--txt:#eef4fb;--muted:#9fb0c7;--green:#19b68e;--gold:#f4c76b;--red:#ef7474}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font-family:Arial,Tahoma,sans-serif;min-height:100vh}
+button,input,textarea,select{font:inherit}button{cursor:pointer;border:0;border-radius:9px;padding:11px 15px;background:var(--green);color:#061b17;font-weight:700}
+button:disabled{opacity:.55;cursor:wait}.secondary{background:#35445d;color:white}.danger{background:#713b48;color:white}
+input,textarea,select{width:100%;background:#0d1728;color:white;border:1px solid var(--line);border-radius:9px;padding:12px;margin:6px 0}
+textarea{min-height:90px;resize:vertical}label{display:block;color:var(--muted);font-size:13px;margin-top:8px}
+#auth{max-width:440px;margin:9vh auto;padding:28px;background:var(--panel);border:1px solid var(--line);border-radius:18px}
+#app{display:none}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;border-bottom:1px solid var(--line);background:#101a2a;position:sticky;top:0;z-index:3}
+.brand{font-size:22px;font-weight:bold;color:#63e0bd}.sub{color:var(--muted);font-size:13px;margin-top:5px}
+.shell{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 75px)}
+aside{padding:18px;border-left:1px solid var(--line);background:#101a2a}
+nav{display:grid;gap:7px;margin-top:18px}nav button{background:transparent;color:#c8d5e6;text-align:right;font-weight:500}nav button.active,nav button:hover{background:#20334a;color:#7ce7c8}
+main{padding:26px;max-width:1400px;width:100%;margin:auto}.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}.toolbar select{max-width:320px;margin:0}
+h1{font-size:25px;margin:0 0 8px}h2{font-size:19px;margin:0 0 15px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:18px 0}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}.metric{font-size:30px;font-weight:bold;color:#72e4c5;margin-top:9px}
+.layout{display:grid;grid-template-columns:minmax(280px,360px) minmax(0,1fr);gap:16px;align-items:start}
+.list{overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;min-width:560px}th,td{padding:13px 14px;text-align:right;border-bottom:1px solid var(--line);font-size:14px;vertical-align:top}th{color:#8ee7ce;background:#1b2a40}
+.empty{padding:28px;text-align:center;color:var(--muted)}.formcard{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.msg{min-height:28px;color:var(--gold);line-height:1.7;overflow-wrap:anywhere}
+.hidden{display:none!important}.pill{display:inline-block;border-radius:30px;padding:4px 9px;background:#253b50;color:#a8efdb;font-size:12px}
+@media(max-width:850px){.shell{grid-template-columns:1fr}aside{border-left:0;border-bottom:1px solid var(--line)}nav{grid-template-columns:repeat(2,minmax(0,1fr))}main{padding:16px}.layout{grid-template-columns:1fr}.top{padding:14px}.row2{grid-template-columns:1fr}}
+</style></head><body>
+<section id="auth"><div class="brand">Smart Growth OS</div><p class="sub">منظومة إدارة التسويق والمبيعات الذكية</p><h2 style="margin-top:25px">تسجيل الدخول</h2>
+<label>البريد الإلكتروني</label><input id="email" type="email" autocomplete="username">
+<label>كلمة المرور</label><input id="password" type="password" autocomplete="current-password">
+<div class="row2"><button id="loginBtn" onclick="signIn()">دخول</button><button class="secondary" onclick="signUp()">إنشاء حساب</button></div><p id="authMsg" class="msg"></p></section>
+<div id="app"><header class="top"><div><div class="brand">Smart Growth OS</div><div class="sub">إدارة الشركة والتسويق والمبيعات</div></div><div><span id="userEmail" class="muted"></span> <button class="secondary" onclick="signOut()">خروج</button></div></header>
+<div class="shell"><aside><label>الشركة الحالية</label><select id="companySelect" onchange="changeCompany()"></select><nav id="nav">
+<button class="active" data-page="overview" onclick="go('overview')">لوحة المؤشرات</button>
+<button data-page="leads" onclick="go('leads')">العملاء المحتملون</button>
+<button data-page="campaigns" onclick="go('campaigns')">الحملات التسويقية</button>
+<button data-page="content" onclick="go('content')">المحتوى</button>
+<button data-page="followups" onclick="go('followups')">المتابعات والمهام</button>
+<button data-page="inbox" onclick="go('inbox')">المحادثات</button>
+<button data-page="automations" onclick="go('automations')">سجل الأتمتة</button>
+<button data-page="company" onclick="go('company')">إعدادات الشركة</button></nav></aside>
+<main><div class="toolbar"><div><h1 id="pageTitle">لوحة المؤشرات</h1><div class="muted" id="pageDesc">ملخص أداء الشركة في مكان واحد</div></div><div style="margin-right:auto"><button class="secondary" onclick="refreshPage()">تحديث البيانات</button></div></div>
+<div id="message" class="msg"></div><section id="view"></section></main></div></div>
 <script>
-const SUPABASE_URL = "https://pyliahdufrfxfuysojsp.supabase.co";
-const SUPABASE_KEY = "sb_publishable_UtyXJM2eeBq7VXGo9ssorg_QC9bTb8q";
-const N8N_WEBHOOK_URL = "https://asemhosam.app.n8n.cloud/webhook/sgos-new-lead";
-
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const msg = document.getElementById("message");
-let selectedCompanyId = null;
-
-async function signUp() {
-  msg.textContent = "جاري إنشاء الحساب...";
-  const { data, error } = await db.auth.signUp({
-    email: document.getElementById("email").value.trim(),
-    password: document.getElementById("password").value
-  });
-  if (error) return msg.textContent = error.message;
-  msg.textContent = data.session
-    ? "تم إنشاء الحساب"
-    : "تم إنشاء الحساب. راجع بريدك الإلكتروني لتأكيده ثم سجّل الدخول.";
-  if (data.session) await showDashboard(data.session.user);
-}
-
-async function signIn() {
-  msg.textContent = "جاري تسجيل الدخول...";
-  const { data, error } = await db.auth.signInWithPassword({
-    email: document.getElementById("email").value.trim(),
-    password: document.getElementById("password").value
-  });
-  if (error) return msg.textContent = error.message;
-  await showDashboard(data.user);
-}
-
-async function showDashboard(user) {
-  document.getElementById("auth").style.display = "none";
-  document.getElementById("dashboard").style.display = "block";
-  document.getElementById("welcome").textContent = "مرحبًا، " + user.email;
-  await loadCompanies();
-}
-
-async function createCompany() {
-  const name = document.getElementById("companyName").value.trim();
-  const industry = document.getElementById("industry").value.trim();
-  if (!name) return msg.textContent = "اكتب اسم الشركة أولًا";
-
-  msg.textContent = "جاري إنشاء الشركة...";
-  const { error } = await db.rpc("create_company", {
-    p_name: name,
-    p_industry: industry || "عام"
-  });
-
-  if (error) return msg.textContent = error.message;
-  document.getElementById("companyName").value = "";
-  document.getElementById("industry").value = "";
-  msg.textContent = "تم إنشاء الشركة بنجاح";
-  await loadCompanies();
-}
-
-async function loadCompanies() {
-  const container = document.getElementById("companies");
-  const { data, error } = await db.from("companies").select("id,name");
-
-  if (error) {
-    msg.textContent = error.message;
-    return;
-  }
-
-  container.replaceChildren();
-  const heading = document.createElement("h3");
-  heading.textContent = "شركاتك";
-  container.appendChild(heading);
-
-  if (!data || data.length === 0) {
-    const empty = document.createElement("p");
-    empty.textContent = "لم يتم إنشاء شركة بعد";
-    container.appendChild(empty);
-    document.getElementById("leadSection").style.display = "none";
-    return;
-  }
-
-  data.forEach(company => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "company-button";
-    button.textContent = "إدارة العملاء — " + company.name;
-    button.addEventListener("click", () => selectCompany(company.id, company.name));
-    container.appendChild(button);
-  });
-}
-
-function selectCompany(companyId, companyName) {
-  selectedCompanyId = companyId;
-  document.getElementById("selectedCompany").textContent =
-    "الشركة المختارة: " + companyName;
-  document.getElementById("leadSection").style.display = "block";
-  msg.textContent = "تقدر دلوقتي تضيف عميل للشركة المختارة.";
-}
-
-async function createLead() {
-  if (!selectedCompanyId) {
-    msg.textContent = "اختار الشركة أولًا";
-    return;
-  }
-
-  const name = document.getElementById("leadName").value.trim();
-  const phone = document.getElementById("leadPhone").value.trim();
-  const email = document.getElementById("leadEmail").value.trim();
-  const source = document.getElementById("leadSource").value.trim();
-  const notes = document.getElementById("leadNotes").value.trim();
-
-  if (!name || !phone) {
-    msg.textContent = "اكتب اسم العميل ورقم الهاتف";
-    return;
-  }
-
-  const { data: sessionData, error: sessionError } = await db.auth.getSession();
-  if (sessionError || !sessionData.session) {
-    msg.textContent = "انتهت جلسة الدخول. سجّل الدخول مرة أخرى.";
-    return;
-  }
-
-  const saveButton = document.getElementById("saveLeadButton");
-  saveButton.disabled = true;
-  msg.textContent = "جاري إرسال بيانات العميل وحفظها...";
-
-  try {
-    const response = await fetch(N8N_WEBHOOK_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + sessionData.session.access_token
-      },
-      body: JSON.stringify({
-        company_id: selectedCompanyId,
-        name,
-        phone,
-        email,
-        source: source || "Website",
-        notes
-      })
-    });
-
-    let result = {};
-    try {
-      result = await response.json();
-    } catch (_) {
-      result = {};
-    }
-
-    if (!response.ok || result.success === false) {
-      const details = result.message || result.error || ("HTTP " + response.status);
-      throw new Error(details);
-    }
-
-    document.getElementById("leadName").value = "";
-    document.getElementById("leadPhone").value = "";
-    document.getElementById("leadEmail").value = "";
-    document.getElementById("leadSource").value = "";
-    document.getElementById("leadNotes").value = "";
-    msg.textContent = "تم إرسال العميل بنجاح إلى n8n وحفظه في قاعدة البيانات.";
-  } catch (error) {
-    msg.textContent = "تعذر حفظ العميل: " + (error.message || "خطأ في الاتصال");
-  } finally {
-    saveButton.disabled = false;
-  }
-}
-
-async function signOut() {
-  await db.auth.signOut();
-  location.reload();
-}
-
-(async () => {
-  const { data } = await db.auth.getSession();
-  if (data.session) await showDashboard(data.session.user);
-})();
-</script>
-</body>
-</html>
+const SUPABASE_URL="https://pyliahdufrfxfuysojsp.supabase.co";
+const SUPABASE_KEY="sb_publishable_UtyXJM2eeBq7VXGo9ssorg_QC9bTb8q";
+const N8N_WEBHOOK_URL="https://asemhosam.app.n8n.cloud/webhook/sgos-new-lead";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let user=null,companyId=null,companyName="",page="overview",cache={};
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const say=t=>$("message").textContent=t||"";
+async function signUp(){ $("authMsg").textContent="جاري إنشاء الحساب...";const {data,error}=await db.auth.signUp({email:$("email").value.trim(),password:$("password").value});$("authMsg").textContent=error?error.message:(data.session?"تم إنشاء الحساب":"راجع بريدك لتأكيد الحساب ثم سجل الدخول");if(data.session)boot(data.session.user);}
+async function signIn(){ $("authMsg").textContent="جاري الدخول...";const {data,error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("password").value});if(error){$("authMsg").textContent=error.message;return;}boot(data.user);}
+async function signOut(){await db.auth.signOut();location.reload();}
+async function boot(u){user=u;$("auth").style.display="none";$("app").style.display="block";$("userEmail").textContent=u.email||"";await loadCompanies();}
+async function loadCompanies(){const {data,error}=await db.from("companies").select("id,name").order("created_at");if(error){say(error.message);return;}const s=$("companySelect");s.innerHTML="";(data||[]).forEach(c=>{const o=document.createElement("option");o.value=c.id;o.textContent=c.name;s.appendChild(o)});if(!data?.length){companyId=null;go("company");return;}companyId=s.value;companyName=s.options[s.selectedIndex].text;await refreshPage();}
+async function changeCompany(){companyId=$("companySelect").value;companyName=$("companySelect").options[$("companySelect").selectedIndex]?.text||"";cache={};await refreshPage();}
+const titles={overview:["لوحة المؤشرات","ملخص أداء الشركة في مكان واحد"],leads:["العملاء المحتملون","إدارة العملاء ومراحل البيع"],campaigns:["الحملات التسويقية","خطط الحملات والميزانيات"],content:["المحتوى","إدارة المحتوى والمنشورات"],followups:["المتابعات والمهام","مواعيد المتابعة والإجراءات المطلوبة"],inbox:["المحادثات","قائمة المحادثات الواردة والصادرة"],automations:["سجل الأتمتة","متابعة تنفيذ سير العمل"],company:["إعدادات الشركة","بيانات الشركة وإضافة شركة أخرى"]};
+function go(p){page=p;document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("active",b.dataset.page===p));$("pageTitle").textContent=titles[p][0];$("pageDesc").textContent=titles[p][1];render();}
+async function refreshPage(){cache={};say("جاري تحميل البيانات...");await render();say("");}
+async function getRows(table,fields="*"){if(!companyId)return [];const {data,error}=await db.from(table).select(fields).eq("company_id",companyId).order("created_at",{ascending:false}).limit(100);if(error)throw error;return data||[];}
+function tableHTML(headers,rows){if(!rows.length)return '<div class="empty">لا توجد بيانات حتى الآن</div>';return '<div class="list"><table><thead><tr>'+headers.map(h=>'<th>'+h[0]+'</th>').join("")+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+headers.map(h=>'<td>'+esc(h[1](r))+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';}
+function field(label,name,type="text",required=false,placeholder=""){return '<label>'+label+'</label><'+(type==="textarea"?"textarea":"input")+' name="'+name+'" '+(type!=="textarea"?'type="'+type+'"':"")+(required?" required":"")+' placeholder="'+placeholder+'"></'+(type==="textarea"?"textarea":"input")+'>';}
+function selectField(label,name,opts){return '<label>'+label+'</label><select name="'+name+'">'+opts.map(x=>'<option value="'+x[0]+'">'+x[1]+'</option>').join("")+'</select>';}
+function formCard(title,fields,button="حفظ"){return '<form class="formcard" id="dataForm"><h2>'+title+'</h2>'+fields+'<button type="submit" style="width:100%;margin-top:14px">'+button+'</button></form>';}
+async function render(){const v=$("view");if(page==="company"){v.innerHTML=companyPanel();$("companyForm")?.addEventListener("submit",createCompany);return;}if(!companyId){v.innerHTML='<div class="card">أنشئ شركة أولاً لبدء استخدام النظام.</div>';return;}
+try{
+if(page==="overview"){const [a,b,c,d,e]=await Promise.all([getRows("leads","id,status"),getRows("campaigns","id,status"),getRows("content_items","id,status"),getRows("followups","id,status"),getRows("conversations","id,status")]);v.innerHTML='<div class="grid">'+metric("العملاء",a.length)+metric("الحملات",b.length)+metric("المحتوى",c.length)+metric("متابعات معلقة",d.filter(x=>x.status==="pending").length)+metric("محادثات مفتوحة",e.filter(x=>x.status==="open").length)+'</div><div class="card"><h2>مساحة العمل</h2><p class="muted">اختر القسم من القائمة الجانبية لإدارة بيانات شركتك. جميع البيانات مرتبطة بالشركة الحالية.</p><span class="pill">'+esc(companyName)+'</span></div>';return;}
+if(page==="leads"){const rows=await getRows("leads");v.innerHTML='<div class="layout">'+formCard("إضافة عميل",field("اسم العميل","name","text",true)+field("رقم الهاتف","phone","tel",true)+field("البريد الإلكتروني","email","email")+field("المصدر","source")+field("ملاحظات","notes","textarea")+selectField("حالة العميل","status",[["new","جديد"],["contacted","تم التواصل"],["qualified","مؤهل"],["proposal","عرض سعر"],["won","تم البيع"],["lost","خسارة"]]))+'<div><h2>قائمة العملاء ('+rows.length+')</h2>'+tableHTML([["الاسم",r=>r.full_name],["الهاتف",r=>r.phone],["البريد",r=>r.email],["المصدر",r=>r.source],["الحالة",r=>r.status],["تاريخ الإضافة",r=>new Date(r.created_at).toLocaleDateString("ar-EG")]],rows)+'</div></div>';bindForm(saveLead);return;}
+if(page==="campaigns"){const rows=await getRows("campaigns");v.innerHTML='<div class="layout">'+formCard("إنشاء حملة",field("اسم الحملة","name","text",true)+field("الهدف","objective")+field("المنصة","platform")+field("الجمهور المستهدف","target_audience")+field("الميزانية","budget","number")+selectField("الحالة","status",[["draft","مسودة"],["planned","مخططة"],["active","نشطة"],["paused","متوقفة"],["completed","مكتملة"]]))+'<div><h2>الحملات ('+rows.length+')</h2>'+tableHTML([["الحملة",r=>r.name],["الهدف",r=>r.objective],["المنصة",r=>r.platform],["الميزانية",r=>r.budget],["الحالة",r=>r.status]],rows)+'</div></div>';bindForm(saveCampaign);return;}
+if(page==="content"){const rows=await getRows("content_items");v.innerHTML='<div class="layout">'+formCard("إضافة محتوى",field("العنوان","title","text",true)+field("النص","body","textarea")+selectField("نوع المحتوى","content_type",[["post","منشور"],["story","قصة"],["reel","ريلز"],["video","فيديو"],["article","مقال"]])+field("المنصة","platform")+selectField("الحالة","status",[["draft","مسودة"],["pending_approval","بانتظار الموافقة"],["approved","معتمد"],["scheduled","مجدول"],["published","منشور"],["rejected","مرفوض"]]))+'<div><h2>المحتوى ('+rows.length+')</h2>'+tableHTML([["العنوان",r=>r.title],["النوع",r=>r.content_type],["المنصة",r=>r.platform],["الحالة",r=>r.status],["تاريخ الإنشاء",r=>new Date(r.created_at).toLocaleDateString("ar-EG")]],rows)+'</div></div>';bindForm(saveContent);return;}
+if(page==="followups"){const rows=await getRows("followups");v.innerHTML='<div class="layout">'+formCard("إضافة متابعة",field("عنوان المتابعة","title","text",true)+field("التفاصيل","description","textarea")+field("موعد المتابعة","due_at","datetime-local")+selectField("الحالة","status",[["pending","معلقة"],["completed","مكتملة"],["cancelled","ملغاة"]]))+'<div><h2>المتابعات ('+rows.length+')</h2>'+tableHTML([["العنوان",r=>r.title],["التفاصيل",r=>r.description],["الموعد",r=>r.due_at?new Date(r.due_at).toLocaleString("ar-EG"):"—"],["الحالة",r=>r.status]],rows)+'</div></div>';bindForm(saveFollowup);return;}
+if(page==="inbox"){const rows=await getRows("conversations");v.innerHTML='<div class="card"><h2>المحادثات</h2><p class="muted">تظهر هنا المحادثات المرتبطة بالشركة عند وصولها من قنوات الربط.</p>'+tableHTML([["القناة",r=>r.channel],["الحالة",r=>r.status],["المعرف الخارجي",r=>r.external_id],["تاريخ الإنشاء",r=>new Date(r.created_at).toLocaleString("ar-EG")]],rows)+'</div>';return;}
+if(page==="automations"){const rows=await getRows("automation_logs");v.innerHTML='<div class="card"><h2>سجل تنفيذ الأتمتة</h2>'+tableHTML([["سير العمل",r=>r.workflow_name],["الحالة",r=>r.status],["رقم التنفيذ",r=>r.execution_id],["التفاصيل",r=>JSON.stringify(r.details||{})],["التاريخ",r=>new Date(r.created_at).toLocaleString("ar-EG")]],rows)+'</div>';return;}
+}catch(e){v.innerHTML='<div class="card">تعذر تحميل البيانات: '+esc(e.message)+'</div>';}}
+function metric(t,n){return '<div class="card"><div class="muted">'+t+'</div><div class="metric">'+n+'</div></div>';}
+function companyPanel(){return '<div class="layout"><form class="formcard" id="companyForm"><h2>إنشاء شركة جديدة</h2>'+field("اسم الشركة","name","text",true)+field("مجال العمل","industry")+'<button style="width:100%;margin-top:12px">إنشاء الشركة</button></form><div class="card"><h2>الشركة الحالية</h2><p>'+esc(companyName||"لا توجد شركة مختارة")+'</p><p class="muted">يمكنك إنشاء أكثر من شركة وإدارة بيانات كل شركة بشكل منفصل.</p></div></div>';}
+async function createCompany(e){e.preventDefault();const f=new FormData(e.target);say("جاري إنشاء الشركة...");const {error}=await db.rpc("create_company",{p_name:f.get("name"),p_industry:f.get("industry")||"عام"});if(error){say(error.message);return;}say("تم إنشاء الشركة");await loadCompanies();}
+function bindForm(fn){const f=$("dataForm");if(f)f.addEventListener("submit",fn);}
+async function saveLead(e){e.preventDefault();const f=new FormData(e.target),{data,error}=await db.auth.getSession();if(error||!data.session){say("انتهت الجلسة، سجل الدخول مجدداً");return;}const btn=e.target.querySelector("button");btn.disabled=true;say("جاري حفظ العميل عبر n8n...");try{const res=await fetch(N8N_WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+data.session.access_token},body:JSON.stringify({company_id:companyId,name:f.get("name"),phone:f.get("phone"),email:f.get("email"),source:f.get("source")||"Website",notes:f.get("notes"),status:f.get("status")})});let j={};try{j=await res.json()}catch(_){}if(!res.ok||j.success===false)throw Error(j.message||j.error||("HTTP "+res.status));say("تم حفظ العميل بنجاح");await render();}catch(err){say("تعذر الحفظ: "+err.message);}finally{btn.disabled=false;}}
+async function insertRow(table,obj){const {error}=await db.from(table).insert({...obj,company_id:companyId,created_by:user.id});if(error)throw error;say("تم الحفظ بنجاح");await render();}
+async function formInsert(e,table,mapper){e.preventDefault();const f=new FormData(e.target),o=mapper(f);try{await insertRow(table,o);}catch(err){say("تعذر الحفظ: "+err.message);}}
+function saveCampaign(e){return formInsert(e,"campaigns",f=>({name:f.get("name"),objective:f.get("objective"),platform:f.get("platform"),target_audience:f.get("target_audience"),budget:Number(f.get("budget")||0),status:f.get("status")}));}
+function saveContent(e){return formInsert(e,"content_items",f=>({title:f.get("title"),body:f.get("body"),content_type:f.get("content_type"),platform:f.get("platform"),status:f.get("status")}));}
+function saveFollowup(e){return formInsert(e,"followups",f=>({title:f.get("title"),description:f.get("description"),due_at:f.get("due_at")?new Date(f.get("due_at")).toISOString():null,status:f.get("status")}));}
+(async()=>{const {data}=await db.auth.getSession();if(data.session)await boot(data.session.user);})();
+</script></body></html>
