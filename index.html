@@ -1,1 +1,153 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Growth OS</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      margin: 0; font-family: Arial, sans-serif;
+      background: #101827; color: white;
+      min-height: 100vh; display: grid; place-items: center;
+    }
+    .panel {
+      width: min(420px, 88%); padding: 28px;
+      background: #1d293b; border-radius: 16px;
+    }
+    h1 { color: #56d6b0; }
+    input, button {
+      width: 100%; box-sizing: border-box;
+      padding: 13px; margin: 8px 0;
+      border-radius: 8px; border: 1px solid #526078;
+      font-size: 16px;
+    }
+    input { background: #101827; color: white; }
+    button {
+      background: #16a985; color: white;
+      border: 0; cursor: pointer; font-weight: bold;
+    }
+    .secondary { background: #35445b; }
+    #message { line-height: 1.8; color: #ffd479; }
+    #dashboard { display: none; }
+  </style>
+</head>
+<body>
+  <main class="panel">
+    <h1>Smart Growth OS</h1>
+    <p>منظومة إدارة التسويق والمبيعات الذكية</p>
+
+    <section id="auth">
+      <h3>تسجيل الدخول أو إنشاء حساب</h3>
+      <input id="email" type="email" placeholder="البريد الإلكتروني">
+      <input id="password" type="password" placeholder="كلمة المرور">
+      <button onclick="signUp()">إنشاء حساب</button>
+      <button class="secondary" onclick="signIn()">تسجيل الدخول</button>
+    </section>
+
+    <section id="dashboard">
+      <h3>لوحة التحكم</h3>
+      <p id="welcome"></p>
+      <input id="companyName" placeholder="اسم الشركة">
+      <input id="industry" placeholder="مجال الشركة">
+      <button onclick="createCompany()">إنشاء الشركة</button>
+      <div id="companies"></div>
+      <button class="secondary" onclick="signOut()">تسجيل الخروج</button>
+    </section>
+
+    <p id="message"></p>
+  </main>
+
+<script>
+const SUPABASE_URL = "https://pyliahdufrfxfuysojsp.supabase.co/rest/v1/companies?select=id,name";
+const SUPABASE_KEY = "sb_publishable_UtyXJM2eeBq7VXGo9ssorg_QC9bTb8q";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+const msg = document.getElementById("message");
+
+async function signUp() {
+  msg.textContent = "جاري إنشاء الحساب...";
+  const { data, error } = await db.auth.signUp({
+    email: document.getElementById("email").value,
+    password: document.getElementById("password").value
+  });
+  if (error) return msg.textContent = error.message;
+  msg.textContent = data.session
+    ? "تم إنشاء الحساب"
+    : "تم إنشاء الحساب. راجع بريدك الإلكتروني لتأكيده ثم سجّل الدخول.";
+  if (data.session) showDashboard(data.session.user);
+}
+
+async function signIn() {
+  msg.textContent = "جاري تسجيل الدخول...";
+  const { data, error } = await db.auth.signInWithPassword({
+    email: document.getElementById("email").value,
+    password: document.getElementById("password").value
+  });
+  if (error) return msg.textContent = error.message;
+  showDashboard(data.user);
+}
+
+async function showDashboard(user) {
+  document.getElementById("auth").style.display = "none";
+  document.getElementById("dashboard").style.display = "block";
+  document.getElementById("welcome").textContent =
+    "مرحبًا، " + user.email;
+  await loadCompanies();
+}
+
+async function createCompany() {
+  const name = document.getElementById("companyName").value.trim();
+  const industry = document.getElementById("industry").value.trim();
+  if (!name) return msg.textContent = "اكتب اسم الشركة أولًا";
+
+  msg.textContent = "جاري إنشاء الشركة...";
+  const { error } = await db.rpc("create_company", {
+    p_name: name,
+    p_industry: industry || "عام"
+  });
+
+  if (error) return msg.textContent = error.message;
+
+  msg.textContent = "تم إنشاء الشركة بنجاح";
+  await loadCompanies();
+}
+
+async function loadCompanies() {
+  const { data, error } = await db
+    .from("companies")
+    .select("id,name");
+
+  if (error) return msg.textContent = error.message;
+
+  document.getElementById("companies").innerHTML =
+    "<h3>شركاتك</h3>" +
+    (data.length
+      ? data.map(c => "<p>" + escapeHTML(c.name) + "</p>").join("")
+      : "<p>لم يتم إنشاء شركة بعد</p>");
+}
+
+function escapeHTML(value) {
+  return String(value).replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;",
+    '"': "&quot;", "'": "&#39;"
+  })[c]);
+}
+
+async function signOut() {
+  await db.auth.signOut();
+  location.reload();
+}
+
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (data.session) showDashboard(data.session.user);
+})();
+</script>
+</body>
+</html>
 
